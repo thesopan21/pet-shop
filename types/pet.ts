@@ -1,3 +1,6 @@
+export type PetCategory = 'dog' | 'cat' | 'bird' | 'other';
+export type PetStatus = 'available' | 'new-arrival' | 'sold';
+
 export interface Pet {
   id: string;
   name: string;
@@ -6,6 +9,9 @@ export interface Pet {
   price: number;
   imageUri: string;
   createdAt: string;
+  category: PetCategory;
+  status: PetStatus;
+  isFavorite?: boolean;
 }
 
 export interface CartItem {
@@ -19,4 +25,13 @@ export interface PetFormData {
   age: number;
   price: number;
   imageUri: string;
+  category: PetCategory;
+}
+
+export interface PaginatedPetsResponse {
+  pets: Pet[];
+  page: number;
+  totalPages: number;
+  totalPets: number;
+  hasMore: boolean;
 }

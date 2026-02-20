@@ -1,20 +1,117 @@
 import { PetCard } from '@/components/pet-card';
 import { addToCart } from '@/store/slices/cartSlice';
-import { selectPets } from '@/store/slices/petsSlices';
-import { Pet } from '@/types/pet';
-import React from 'react';
+import { selectCartItemsCount } from '@/store/slices/cartSlice';
+import {
+  selectPets,
+  selectIsLoading,
+  selectIsLoadingMore,
+  selectHasMore,
+  selectCurrentPage,
+  selectTotalPets,
+  fetchPets,
+  toggleFavorite,
+  resetPets
+} from '@/store/slices/petsSlices';
+import { Pet, PetCategory } from '@/types/pet';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   FlatList,
   StyleSheet,
   Text,
-  View
+  View,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
+import { AppDispatch } from '@/store/store';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+
+type FilterType = 'all' | PetCategory;
 
 export default function PetListingScreen() {
+  const dispatch = useDispatch<AppDispatch>();
   const pets = useSelector(selectPets);
-  const dispatch = useDispatch();
+  const isLoading = useSelector(selectIsLoading);
+  const isLoadingMore = useSelector(selectIsLoadingMore);
+  const hasMore = useSelector(selectHasMore);
+  const currentPage = useSelector(selectCurrentPage);
+  const cartItemsCount = useSelector(selectCartItemsCount);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Initial fetch
+  useEffect(() => {
+    dispatch(fetchPets({ page: 1, limit: 10 }));
+  }, []);
+
+  // Handle filter change
+  const handleFilterChange = useCallback((filter: FilterType) => {
+    setActiveFilter(filter);
+    dispatch(resetPets());
+
+    const category = filter === 'all' ? undefined : filter as PetCategory;
+    dispatch(fetchPets({
+      page: 1,
+      limit: 10,
+      category,
+      searchQuery: searchQuery || undefined
+    }));
+  }, [searchQuery]);
+
+  // Handle search
+  const handleSearch = useCallback((text: string) => {
+    setSearchQuery(text);
+  }, []);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      dispatch(resetPets());
+      const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
+      dispatch(fetchPets({
+        page: 1,
+        limit: 10,
+        category,
+        searchQuery: searchQuery || undefined
+      }));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    dispatch(resetPets());
+    const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
+    await dispatch(fetchPets({
+      page: 1,
+      limit: 10,
+      category,
+      searchQuery: searchQuery || undefined
+    }));
+    setRefreshing(false);
+  }, [activeFilter, searchQuery]);
+
+  // Handle load more
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
+      dispatch(fetchPets({
+        page: currentPage + 1,
+        limit: 10,
+        category,
+        searchQuery: searchQuery || undefined
+      }));
+    }
+  }, [isLoadingMore, hasMore, currentPage, activeFilter, searchQuery]);
 
   const handleAddToCart = (pet: Pet) => {
     dispatch(addToCart(pet));
@@ -25,69 +122,237 @@ export default function PetListingScreen() {
     });
   };
 
+  const handleToggleFavorite = (petId: string) => {
+    dispatch(toggleFavorite(petId));
+  };
+
+  const renderFilterButton = (label: string, filter: FilterType, icon: string) => (
+    <TouchableOpacity
+      style={[
+        styles.filterButton,
+        activeFilter === filter && styles.filterButtonActive,
+      ]}
+      onPress={() => handleFilterChange(filter)}
+    >
+      <Ionicons
+        name={icon as any}
+        size={18}
+        color={activeFilter === filter ? '#FFFFFF' : '#6B7280'}
+        style={styles.filterIcon}
+      />
+      <Text
+        style={[
+          styles.filterText,
+          activeFilter === filter && styles.filterTextActive,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>🐾</Text>
       <Text style={styles.emptyTitle}>No Pets Available</Text>
       <Text style={styles.emptyText}>
-        Add your first pet using the "Add Pet" tab!
+        {searchQuery
+          ? `No results found for "${searchQuery}"`
+          : 'Add your first pet using the "Add Pet" tab!'}
       </Text>
     </View>
   );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Pet Shop</Text>
-        <Text style={styles.subtitle}>
-          {pets.length} {pets.length === 1 ? 'pet' : 'pets'} available
-        </Text>
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#F97316" />
+        <Text style={styles.loadingText}>Loading more pets...</Text>
       </View>
+    );
+  };
 
-      <FlatList
-        data={pets}
-        renderItem={({ item }) => (
-          <PetCard pet={item} onAddToCart={handleAddToCart} />
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" backgroundColor='white' />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logo}>
+                <Ionicons name="paw" size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.title}>Pet Paradise</Text>
+            </View>
+            <View style={styles.cartBadgeContainer}>
+              {cartItemsCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>
+                    {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                  </Text>
+                </View>
+              )}
+              <Ionicons name="cart" size={24} color="#1F2937" />
+            </View>
+          </View>
+
+
+          {/* Filter Buttons */}
+          <View style={styles.filterContainer}>
+            {renderFilterButton('All Pets', 'all', 'apps')}
+            {renderFilterButton('Dogs', 'dog', 'paw')}
+            {renderFilterButton('Cats', 'cat', 'paw')}
+          </View>
+        </View>
+
+        {/* Pet List */}
+        {isLoading && pets.length === 0 ? (
+          <View style={styles.centerLoader}>
+            <ActivityIndicator size="large" color="#F97316" />
+            <Text style={styles.loadingText}>Loading pets...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={pets}
+            renderItem={({ item }) => (
+              <PetCard
+                pet={item}
+                onAddToCart={handleAddToCart}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              pets.length === 0 && styles.emptyListContent,
+            ]}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmptyState}
+            ListFooterComponent={renderFooter}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#F97316"
+                colors={['#F97316']}
+              />
+            }
+          />
         )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContent,
-          pets.length === 0 && styles.emptyListContent,
-        ]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
-      />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F97316',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+
+    fontSize: 20,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
+    color: '#1F2937',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    zIndex: 999,
+    backgroundColor: '#EF4444',
+    borderRadius: 20,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cartBadgeContainer: {
+    position: 'relative',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  filterButtonActive: {
+    backgroundColor: '#F97316',
+  },
+  filterIcon: {
+    marginRight: 6,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
   },
   listContent: {
     padding: 16,
   },
   emptyListContent: {
     flexGrow: 1,
+  },
+  centerLoader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
   },
   emptyState: {
     flex: 1,
@@ -102,12 +367,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: '#1F2937',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: '#6B7280',
     textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
 });

@@ -26,6 +26,7 @@ export default function AddPetScreen() {
   const [age, setAge] = useState('');
   const [price, setPrice] = useState('');
   const [imageUri, setImageUri] = useState('');
+  const [category, setCategory] = useState<'dog' | 'cat' | 'bird' | 'other'>('dog');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const dispatch = useDispatch();
@@ -134,6 +135,7 @@ export default function AddPetScreen() {
         age: parseFloat(age),
         price: parseFloat(price),
         imageUri,
+        category,
       });
       setErrors({});
       return true;
@@ -166,6 +168,7 @@ export default function AddPetScreen() {
         age: parseFloat(age),
         price: parseFloat(price),
         imageUri,
+        category,
       };
 
       const response = await submitPetDetails(petData);
@@ -184,6 +187,7 @@ export default function AddPetScreen() {
       setAge('');
       setPrice('');
       setImageUri('');
+      setCategory('dog');
       setErrors({});
     } catch (error) {
       Toast.show({
@@ -261,6 +265,45 @@ export default function AddPetScreen() {
           returnKeyType="next"
           onSubmit={() => ageInputRef.current?.focus()}
         />
+
+        {/* Category Selection */}
+        <View style={styles.categorySection}>
+          <Text style={styles.categoryLabel}>Category *</Text>
+          <View style={styles.categoryButtons}>
+            {(['dog', 'cat', 'bird', 'other'] as const).map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.categoryButton,
+                  category === cat && styles.categoryButtonActive,
+                ]}
+                onPress={() => {
+                  setCategory(cat);
+                  setErrors((prev) => ({ ...prev, category: '' }));
+                }}
+              >
+                <Ionicons
+                  name={
+                    cat === 'dog' ? 'paw' :
+                    cat === 'cat' ? 'paw' :
+                    cat === 'bird' ? 'leaf' : 'egg'
+                  }
+                  size={20}
+                  color={category === cat ? '#FFFFFF' : '#6B7280'}
+                />
+                <Text
+                  style={[
+                    styles.categoryButtonText,
+                    category === cat && styles.categoryButtonTextActive,
+                  ]}
+                >
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
+        </View>
 
         <Input
           ref={ageInputRef}
@@ -365,6 +408,43 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: 12,
     marginTop: 8,
+  },
+  categorySection: {
+    marginBottom: 16,
+  },
+  categoryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  categoryButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#F3F4F6',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#F97316',
+    borderColor: '#F97316',
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  categoryButtonTextActive: {
+    color: '#FFFFFF',
   },
   submitButton: {
     marginTop: 8,

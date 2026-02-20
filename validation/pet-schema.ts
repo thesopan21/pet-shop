@@ -15,6 +15,9 @@ export const petSchema = z.object({
     .max(1000000, 'Price seems too high'),
   imageUri: z.string()
     .min(1, 'Please select an image for your pet'),
+  category: z.enum(['dog', 'cat', 'bird', 'other'], {
+    message: 'Please select a pet category',
+  }),
 });
 
 export type PetFormSchema = z.infer<typeof petSchema>;
