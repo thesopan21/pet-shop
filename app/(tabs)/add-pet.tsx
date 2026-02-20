@@ -1,13 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { fetchRandomDogImage, submitPetDetails } from '@/services/api';
-import { addPet, setIsSubmitting, setIsFetchingRandomImage } from '@/store/slices/petsSlices';
-import { selectIsSubmitting, selectIsFetchingRandomImage } from '@/store/slices/petsSlices';
+import { submitPetDetails } from '@/services/api';
+import { addPet, selectIsSubmitting, setIsSubmitting } from '@/store/slices/petsSlices';
 import { petSchema } from '@/validation/pet-schema';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import {
   Alert,
   Image,
@@ -18,7 +17,9 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { useDispatch, useSelector } from 'react-redux';
 
 export default function AddPetScreen() {
   const [name, setName] = useState('');
@@ -31,28 +32,31 @@ export default function AddPetScreen() {
 
   const dispatch = useDispatch();
   const isSubmitting = useSelector(selectIsSubmitting);
-  const isFetchingRandomImage = useSelector(selectIsFetchingRandomImage);
 
   // Refs for keyboard navigation
   const breedInputRef = useRef<TextInput>(null);
   const ageInputRef = useRef<TextInput>(null);
   const priceInputRef = useRef<TextInput>(null);
 
-  const requestPermissions = async () => {
+  const resetForm = () => {
+    setName('');
+    setBreed('');
+    setAge('');
+    setPrice('');
+    setImageUri('');
+    setCategory('dog');
+    setErrors({});
+  };
+
+  const pickImageFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
         'Permission Required',
         'Sorry, we need camera roll permissions to upload images.'
       );
-      return false;
+      return;
     }
-    return true;
-  };
-
-  const pickImageFromGallery = async () => {
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
@@ -91,36 +95,13 @@ export default function AddPetScreen() {
     }
   };
 
-  const fetchRandomImage = async () => {
-    try {
-      dispatch(setIsFetchingRandomImage(true));
-      const randomImageUrl = await fetchRandomDogImage();
-      setImageUri(randomImageUrl);
-      setErrors((prev) => ({ ...prev, imageUri: '' }));
-      Toast.show({
-        type: 'success',
-        text1: 'Random image loaded!',
-        text2: 'A cute dog image has been fetched for you.',
-      });
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to load image',
-        text2: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      dispatch(setIsFetchingRandomImage(false));
-    }
-  };
-
   const showImagePickerOptions = () => {
     Alert.alert(
-      'Select Image',
+      'Upload Image',
       'Choose an option to add a pet image',
       [
         { text: 'Camera', onPress: pickImageFromCamera },
         { text: 'Gallery', onPress: pickImageFromGallery },
-        { text: 'Random Dog', onPress: fetchRandomImage },
         { text: 'Cancel', style: 'cancel' },
       ],
       { cancelable: true }
@@ -182,13 +163,7 @@ export default function AddPetScreen() {
       });
 
       // Reset form
-      setName('');
-      setBreed('');
-      setAge('');
-      setPrice('');
-      setImageUri('');
-      setCategory('dog');
-      setErrors({});
+      resetForm();
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -201,20 +176,29 @@ export default function AddPetScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <KeyboardAwareScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bottomOffset={20}
-      >
-        <Text style={styles.title}>Add New Pet</Text>
-        <Text style={styles.subtitle}>Fill in the details to add a pet to the shop</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar style="dark" backgroundColor='white' />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            <Text style={styles.headerTitle}>Add New Pet</Text>
+          </View>
+        </View>
 
-        {/* Image Preview */}
-        <View style={styles.imageSection}>
+        <KeyboardAwareScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bottomOffset={20}
+          keyboardShouldPersistTaps='always'
+        >
+          {/* Pet Photo Section */}
+          <Text style={styles.sectionLabel}>Pet Photo</Text>
+
           {imageUri ? (
-            <View>
+            <View style={styles.imagePreviewContainer}>
               <Image source={{ uri: imageUri }} style={styles.imagePreview} />
               <TouchableOpacity
                 style={styles.changeImageButton}
@@ -224,133 +208,171 @@ export default function AddPetScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity
-              style={styles.imagePlaceholder}
-              onPress={showImagePickerOptions}
-              disabled={isFetchingRandomImage}
-            >
-              <Ionicons name="camera-outline" size={48} color="#999" />
-              <Text style={styles.placeholderText}>
-                {isFetchingRandomImage ? 'Loading...' : 'Tap to add image'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.uploadContainer}>
+              <View style={styles.uploadIcon}>
+                <Ionicons name="camera" size={40} color="#F97316" />
+              </View>
+              <Text style={styles.uploadTitle}>Upload from gallery or camera</Text>
+              <Text style={styles.uploadSubtitle}>PNG, JPG up to 10MB</Text>
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={showImagePickerOptions}
+              >
+                <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.uploadButtonText}>Upload Image</Text>
+              </TouchableOpacity>
+            </View>
           )}
           {errors.imageUri && <Text style={styles.errorText}>{errors.imageUri}</Text>}
-        </View>
 
-        {/* Form Fields */}
-        <Input
-          label="Pet Name *"
-          value={name}
-          onChangeText={(text) => {
-            setName(text);
-            setErrors((prev) => ({ ...prev, name: '' }));
-          }}
-          placeholder="e.g., Max"
-          error={errors.name}
-          returnKeyType="next"
-          onSubmit={() => breedInputRef.current?.focus()}
-        />
 
-        <Input
-          ref={breedInputRef}
-          label="Breed *"
-          value={breed}
-          onChangeText={(text) => {
-            setBreed(text);
-            setErrors((prev) => ({ ...prev, breed: '' }));
-          }}
-          placeholder="e.g., Golden Retriever"
-          error={errors.breed}
-          returnKeyType="next"
-          onSubmit={() => ageInputRef.current?.focus()}
-        />
+          {/* Form Fields */}
+          <Input
+            label="Pet Name *"
+            value={name}
+            onChangeText={(text) => {
+              setName(text);
+              setErrors((prev) => ({ ...prev, name: '' }));
+            }}
+            placeholder="e.g., Buddy"
+            error={errors.name}
+            returnKeyType="next"
+            onSubmit={() => breedInputRef.current?.focus()}
+          />
 
-        {/* Category Selection */}
-        <View style={styles.categorySection}>
-          <Text style={styles.categoryLabel}>Category *</Text>
-          <View style={styles.categoryButtons}>
-            {(['dog', 'cat', 'bird', 'other'] as const).map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryButton,
-                  category === cat && styles.categoryButtonActive,
-                ]}
-                onPress={() => {
-                  setCategory(cat);
-                  setErrors((prev) => ({ ...prev, category: '' }));
-                }}
-              >
-                <Ionicons
-                  name={
-                    cat === 'dog' ? 'paw' :
-                    cat === 'cat' ? 'paw' :
-                    cat === 'bird' ? 'leaf' : 'egg'
-                  }
-                  size={20}
-                  color={category === cat ? '#FFFFFF' : '#6B7280'}
-                />
-                <Text
+          <Input
+            ref={breedInputRef}
+            label="Breed"
+            value={breed}
+            onChangeText={(text) => {
+              setBreed(text);
+              setErrors((prev) => ({ ...prev, breed: '' }));
+            }}
+            placeholder="e.g., Golden Retriever"
+            error={errors.breed}
+            returnKeyType="next"
+            onSubmit={() => ageInputRef.current?.focus()}
+          />
+
+          {/* Category Selection */}
+          <View style={styles.categorySection}>
+            <Text style={styles.categoryLabel}>Category *</Text>
+            <View style={styles.categoryButtons}>
+              {(['dog', 'cat', 'bird', 'other'] as const).map((cat) => (
+                <TouchableOpacity
+                  key={cat}
                   style={[
-                    styles.categoryButtonText,
-                    category === cat && styles.categoryButtonTextActive,
+                    styles.categoryButton,
+                    category === cat && styles.categoryButtonActive,
                   ]}
+                  onPress={() => {
+                    setCategory(cat);
+                    setErrors((prev) => ({ ...prev, category: '' }));
+                  }}
                 >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Ionicons
+                    name={
+                      cat === 'dog' ? 'paw' :
+                        cat === 'cat' ? 'paw' :
+                          cat === 'bird' ? 'leaf' : 'egg'
+                    }
+                    size={18}
+                    color={category === cat ? '#FFFFFF' : '#6B7280'}
+                  />
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      category === cat && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
           </View>
-          {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
-        </View>
 
-        <Input
-          ref={ageInputRef}
-          label="Age (years) *"
-          value={age}
-          onChangeText={(text) => {
-            setAge(text);
-            setErrors((prev) => ({ ...prev, age: '' }));
-          }}
-          placeholder="e.g., 2"
-          keyboardType="numeric"
-          error={errors.age}
-          returnKeyType="next"
-          onSubmit={() => priceInputRef.current?.focus()}
-        />
+          {/* Age and Price in Row */}
+          <View style={styles.row}>
+            <View style={styles.halfWidth}>
+              <Input
+                ref={ageInputRef}
+                label="Age"
+                value={age}
+                onChangeText={(text) => {
+                  setAge(text);
+                  setErrors((prev) => ({ ...prev, age: '' }));
+                }}
+                placeholder="2"
+                keyboardType="numeric"
+                error={errors.age}
+                returnKeyType="next"
+                onSubmit={() => priceInputRef.current?.focus()}
+              />
+              <Text style={styles.unitLabel}>Years</Text>
+            </View>
 
-        <Input
-          ref={priceInputRef}
-          label="Price ($) *"
-          value={price}
-          onChangeText={(text) => {
-            setPrice(text);
-            setErrors((prev) => ({ ...prev, price: '' }));
-          }}
-          placeholder="e.g., 500"
-          keyboardType="numeric"
-          error={errors.price}
-          returnKeyType="done"
-          onSubmit={handleSubmit}
-        />
+            <View style={styles.halfWidth}>
+              <Input
+                ref={priceInputRef}
+                label="Price"
+                value={price}
+                onChangeText={(text) => {
+                  setPrice(text);
+                  setErrors((prev) => ({ ...prev, price: '' }));
+                }}
+                placeholder="$ 0.00"
+                keyboardType="numeric"
+                error={errors.price}
+                returnKeyType="done"
+                onSubmit={handleSubmit}
+              />
+            </View>
+          </View>
 
-        <Button
-          title="Submit Pet Details"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={isSubmitting}
-          style={styles.submitButton}
-        />
-      </KeyboardAwareScrollView>
-    </View>
+          <Button
+            title="Save Pet Profile"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            style={styles.submitButton}
+            leftIcon={<Ionicons name="paw" size={20} color="#FFFFFF" />}
+          />
+        </KeyboardAwareScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  resetButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F97316',
   },
   scrollView: {
     flex: 1,
@@ -359,94 +381,165 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 28,
+  sectionLabel: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  uploadContainer: {
+    width: '100%',
+    minHeight: 200,
+    borderRadius: 16,
+    backgroundColor: '#FEF3E8',
+    borderWidth: 2,
+    borderColor: '#F97316',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
+  uploadIcon: {
+    position: 'relative',
+    marginBottom: 16,
   },
-  imageSection: {
-    marginBottom: 24,
+  plusIcon: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F97316',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  uploadSubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 20,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F97316',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  imagePreviewContainer: {
+    marginBottom: 16,
   },
   imagePreview: {
     width: '100%',
-    height: 250,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
+    height: 200,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
   },
   changeImageButton: {
     marginTop: 12,
     alignItems: 'center',
   },
   changeImageText: {
-    color: '#007AFF',
+    color: '#F97316',
     fontSize: 16,
     fontWeight: '600',
   },
-  imagePlaceholder: {
-    width: '100%',
-    height: 250,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
+  detailsHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 20,
   },
-  placeholderText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#999',
+  detailsIndicator: {
+    width: 4,
+    height: 24,
+    backgroundColor: '#F97316',
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  detailsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
   },
   errorText: {
-    color: '#FF3B30',
+    color: '#EF4444',
     fontSize: 12,
-    marginTop: 8,
+    marginTop: 4,
+    marginBottom: 8,
   },
   categorySection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   categoryLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#4B5563',
     marginBottom: 12,
   },
   categoryButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     flexWrap: 'wrap',
   },
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
-    borderWidth: 2,
-    borderColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   categoryButtonActive: {
     backgroundColor: '#F97316',
     borderColor: '#F97316',
   },
   categoryButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#6B7280',
   },
   categoryButtonTextActive: {
     color: '#FFFFFF',
   },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  halfWidth: {
+    flex: 1,
+    position: 'relative',
+  },
+  unitLabel: {
+    position: 'absolute',
+    right: 16,
+    top: 45,
+    fontSize: 14,
+    color: '#F97316',
+    fontWeight: '600',
+  },
   submitButton: {
-    marginTop: 8,
+    marginTop: 24,
+    backgroundColor: '#F97316',
   },
 });
