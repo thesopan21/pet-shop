@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fetchRandomDogImage, submitPetDetails } from '@/services/api';
-import { usePetStore } from '@/store/pet-store';
+import { addPet, setIsSubmitting, setIsFetchingRandomImage } from '@/store/slices/petsSlices';
+import { selectIsSubmitting, selectIsFetchingRandomImage } from '@/store/slices/petsSlices';
 import { petSchema } from '@/validation/pet-schema';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Alert,
   Image,
@@ -26,18 +28,14 @@ export default function AddPetScreen() {
   const [imageUri, setImageUri] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const dispatch = useDispatch();
+  const isSubmitting = useSelector(selectIsSubmitting);
+  const isFetchingRandomImage = useSelector(selectIsFetchingRandomImage);
+
   // Refs for keyboard navigation
   const breedInputRef = useRef<TextInput>(null);
   const ageInputRef = useRef<TextInput>(null);
   const priceInputRef = useRef<TextInput>(null);
-
-  const {
-    addPet,
-    isSubmitting,
-    setIsSubmitting,
-    isFetchingRandomImage,
-    setIsFetchingRandomImage,
-  } = usePetStore();
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -94,7 +92,7 @@ export default function AddPetScreen() {
 
   const fetchRandomImage = async () => {
     try {
-      setIsFetchingRandomImage(true);
+      dispatch(setIsFetchingRandomImage(true));
       const randomImageUrl = await fetchRandomDogImage();
       setImageUri(randomImageUrl);
       setErrors((prev) => ({ ...prev, imageUri: '' }));
@@ -110,7 +108,7 @@ export default function AddPetScreen() {
         text2: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
-      setIsFetchingRandomImage(false);
+      dispatch(setIsFetchingRandomImage(false));
     }
   };
 
@@ -160,7 +158,7 @@ export default function AddPetScreen() {
     }
 
     try {
-      setIsSubmitting(true);
+      dispatch(setIsSubmitting(true));
 
       const petData = {
         name,
@@ -172,7 +170,7 @@ export default function AddPetScreen() {
 
       const response = await submitPetDetails(petData);
 
-      addPet(response);
+      dispatch(addPet(response));
 
       Toast.show({
         type: 'success',
@@ -194,7 +192,7 @@ export default function AddPetScreen() {
         text2: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
-      setIsSubmitting(false);
+      dispatch(setIsSubmitting(false));
     }
   };
 

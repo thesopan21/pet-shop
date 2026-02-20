@@ -8,14 +8,16 @@ import {
   Alert,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { usePetStore } from '@/store/pet-store';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectCart, selectCartTotal, selectCartItemsCount, removeFromCart, clearCart } from '@/store/slices/cartSlice';
 import { CartItemCard } from '@/components/cart-item-card';
 import { Button } from '@/components/ui/button';
 
 export default function CartScreen() {
-  const { cart, removeFromCart, clearCart, getCartTotal, getCartItemsCount } = usePetStore();
-  const total = getCartTotal();
-  const itemsCount = getCartItemsCount();
+  const dispatch = useDispatch();
+  const cart = useSelector(selectCart);
+  const total = useSelector(selectCartTotal);
+  const itemsCount = useSelector(selectCartItemsCount);
 
   const handleRemoveItem = (petId: string) => {
     Alert.alert(
@@ -27,7 +29,7 @@ export default function CartScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            removeFromCart(petId);
+            dispatch(removeFromCart(petId));
             Toast.show({
               type: 'info',
               text1: 'Item Removed',
@@ -49,7 +51,7 @@ export default function CartScreen() {
           text: 'Clear All',
           style: 'destructive',
           onPress: () => {
-            clearCart();
+            dispatch(clearCart());
             Toast.show({
               type: 'info',
               text1: 'Cart Cleared',
@@ -67,7 +69,7 @@ export default function CartScreen() {
       text1: 'Checkout Successful!',
       text2: `Your order of ${itemsCount} ${itemsCount === 1 ? 'pet' : 'pets'} has been placed.`,
     });
-    clearCart();
+    dispatch(clearCart());
   };
 
   const renderEmptyState = () => (

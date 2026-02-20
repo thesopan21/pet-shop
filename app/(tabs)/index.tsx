@@ -1,5 +1,6 @@
 import { PetCard } from '@/components/pet-card';
-import { usePetStore } from '@/store/pet-store';
+import { addToCart } from '@/store/slices/cartSlice';
+import { selectPets } from '@/store/slices/petsSlices';
 import { Pet } from '@/types/pet';
 import React from 'react';
 import {
@@ -9,12 +10,14 @@ import {
   View
 } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { useDispatch, useSelector } from 'react-redux';
 
 export default function PetListingScreen() {
-  const { pets, addToCart } = usePetStore();
+  const pets = useSelector(selectPets);
+  const dispatch = useDispatch();
 
   const handleAddToCart = (pet: Pet) => {
-    addToCart(pet);
+    dispatch(addToCart(pet));
     Toast.show({
       type: 'success',
       text1: 'Added to Cart',
