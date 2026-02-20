@@ -1,22 +1,22 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  TextInput,
-} from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
-import Toast from 'react-native-toast-message';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { fetchRandomDogImage, submitPetDetails } from '@/services/api';
 import { usePetStore } from '@/store/pet-store';
 import { petSchema } from '@/validation/pet-schema';
-import { submitPetDetails, fetchRandomDogImage } from '@/services/api';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import Toast from 'react-native-toast-message';
 
 export default function AddPetScreen() {
   const [name, setName] = useState('');
@@ -56,10 +56,11 @@ export default function AddPetScreen() {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      allowsMultipleSelection: false,
     });
 
     if (!result.canceled) {
@@ -82,6 +83,7 @@ export default function AddPetScreen() {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      allowsMultipleSelection: false,
     });
 
     if (!result.canceled) {
@@ -169,7 +171,7 @@ export default function AddPetScreen() {
       };
 
       const response = await submitPetDetails(petData);
-      
+
       addPet(response);
 
       Toast.show({
