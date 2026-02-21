@@ -9,7 +9,7 @@ export interface Pet {
   price: number;
   imageUri: string;
   createdAt: string;
-  category: PetCategory;
+  category: string;
   status: PetStatus;
   isFavorite?: boolean;
 }
@@ -25,7 +25,7 @@ export interface PetFormData {
   age: number;
   price: number;
   imageUri: string;
-  category: PetCategory;
+  category: string;
 }
 
 export interface PaginatedPetsResponse {

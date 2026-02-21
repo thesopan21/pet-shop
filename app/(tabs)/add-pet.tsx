@@ -5,6 +5,7 @@ import { Pet } from '@/types/pet';
 import { petSchema } from '@/validation/pet-schema';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
 import {
@@ -27,7 +28,7 @@ export default function AddPetScreen() {
   const [age, setAge] = useState('');
   const [price, setPrice] = useState('');
   const [imageUri, setImageUri] = useState('');
-  const [category, setCategory] = useState<'dog' | 'cat' | 'bird' | 'other'>('dog');
+  const [category, setCategory] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const dispatch = useDispatch();
@@ -35,6 +36,7 @@ export default function AddPetScreen() {
 
   // Refs for keyboard navigation
   const breedInputRef = useRef<TextInput>(null);
+  const categoryInputRef = useRef<TextInput>(null);
   const ageInputRef = useRef<TextInput>(null);
   const priceInputRef = useRef<TextInput>(null);
 
@@ -44,7 +46,7 @@ export default function AddPetScreen() {
     setAge('');
     setPrice('');
     setImageUri('');
-    setCategory('dog');
+    setCategory('');
     setErrors({});
   };
 
@@ -185,7 +187,9 @@ export default function AddPetScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Add New Pet</Text>
           </View>
         </View>
@@ -254,47 +258,22 @@ export default function AddPetScreen() {
             placeholder="e.g., Golden Retriever"
             error={errors.breed}
             returnKeyType="next"
-            onSubmit={() => ageInputRef.current?.focus()}
+            onSubmit={() => categoryInputRef.current?.focus()}
           />
 
-          {/* Category Selection */}
-          <View style={styles.categorySection}>
-            <Text style={styles.categoryLabel}>Category *</Text>
-            <View style={styles.categoryButtons}>
-              {(['dog', 'cat', 'bird', 'other'] as const).map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.categoryButton,
-                    category === cat && styles.categoryButtonActive,
-                  ]}
-                  onPress={() => {
-                    setCategory(cat);
-                    setErrors((prev) => ({ ...prev, category: '' }));
-                  }}
-                >
-                  <Ionicons
-                    name={
-                      cat === 'dog' ? 'paw' :
-                        cat === 'cat' ? 'paw' :
-                          cat === 'bird' ? 'leaf' : 'egg'
-                    }
-                    size={18}
-                    color={category === cat ? '#FFFFFF' : '#6B7280'}
-                  />
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      category === cat && styles.categoryButtonTextActive,
-                    ]}
-                  >
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
-          </View>
+          <Input
+            ref={categoryInputRef}
+            label="Category *"
+            value={category}
+            onChangeText={(text) => {
+              setCategory(text);
+              setErrors((prev) => ({ ...prev, category: '' }));
+            }}
+            placeholder="e.g., Dog, Cat, Bird, Rabbit"
+            error={errors.category}
+            returnKeyType="next"
+            onSubmit={() => ageInputRef.current?.focus()}
+          />
 
           {/* Age and Price in Row */}
           <View style={styles.row}>
