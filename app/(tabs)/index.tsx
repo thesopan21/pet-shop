@@ -104,7 +104,6 @@ export default function PetListingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" backgroundColor='white' />
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
