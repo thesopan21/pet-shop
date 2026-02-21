@@ -1,6 +1,6 @@
 # 🐾 Pet Shop Mobile App
 
-A full-featured React Native mobile application for managing a pet shop, built with Expo. Users can upload pet details with images, browse available pets, manage a shopping cart, and complete purchases.
+A modern React Native pet adoption app built with Expo. Browse pets, discover random dogs, manage your cart, and adopt your perfect furry friend!
 
 ## 📱 Platform Support
 
@@ -14,57 +14,56 @@ Built with **Expo SDK 54** and **React Native 0.81.5**
 
 ### Core Functionality
 
-1. **Pet Image Upload**
+1. **Pet Listing (Home)**
+   - Browse available pets with pagination
+   - Filter by category (Dogs, Cats, All)
+   - Real-time search functionality
+   - Pull-to-refresh support
+   - Add to cart from listing
+   - Favorite pets toggle
+   - Cart badge with item count
+   - Navigate to cart screen
+
+2. **Pet Discovery (Explore)**
+   - Discover random dogs with a single tap
+   - Real-time integration with Dog CEO API
+   - Beautiful card-based UI
+   - Add to favorites
+   - Save pets for later
+   - Share pets with friends
+   - Quick add to cart
+   - Auto-extract breed from API
+
+3. **Add Pet Form**
    - Upload images from Camera or Gallery
-   - Fetch random dog images from external API
-   - Real-time image preview before submission
-   - Permission handling for camera and media library
-
-2. **Pet Details Form**
-   - Pet Name (Required, 2-50 characters)
-   - Breed (Required, 2-50 characters)
-   - Age (Required, 0-30 years)
-   - Price (Required, $1-$1,000,000)
+   - Fetch random dog images from API
+   - Pet Name, Breed, Age, Price fields
    - Real-time form validation using Zod
-   - Clear error messages for validation failures
-
-3. **Pet Listing**
-   - Card-based UI with pet images
-   - Display pet details (name, breed, age, price)
-   - Add to cart functionality from listing
-   - Empty state when no pets available
+   - Enhanced keyboard handling
+   - Smart input navigation
+   - Auto-scroll to focused input
 
 4. **Shopping Cart**
-   - Add multiple pets to cart
-   - Quantity tracking per pet
-   - Remove individual items
-   - Clear entire cart
+   - Accessible from home screen
+   - View all cart items with details
+   - Remove individual items with confirmation
    - Real-time total calculation
-   - Cart badge showing item count
    - Checkout functionality
+   - Empty state messaging
 
-5. **API Integration**
-   - Submit pet details: `POST https://reqres.in/api/users`
-   - Fetch random dog images: `GET https://dog.ceo/api/breeds/image/random`
-   - Error handling with user-friendly messages
-   - Loading states during API calls
-
-6. **State Management**
-   - Global state with Zustand
+5. **State Management**
+   - Redux Toolkit for predictable state
+   - RTK Query for API caching
    - Persistent cart across screens
-   - Loading and error states
-   - Optimistic UI updates
+   - Optimized re-renders
 
-7. **UI/UX Features**
+6. **UI/UX Features**
    - Toast notifications for user feedback
-   - Loading indicators during async operations
-   - Form validation with inline error messages
-   - **Enhanced keyboard handling** with smooth animations
-   - **Smart input navigation** - Press "Next" to move between fields
-   - **Auto-scroll to focused input** when keyboard appears
-   - Haptic feedback on tab navigation
-   - Responsive design for different screen sizes
-   - Clean and modern UI with consistent styling
+   - Loading states with skeletons
+   - Pull-to-refresh on listings
+   - Haptic feedback on interactions
+   - Responsive design
+   - Clean and modern UI
 
 ## 🏗️ Architecture Overview
 
@@ -77,16 +76,22 @@ pet-shop/
 │   │   ├── _layout.tsx          # Tab bar configuration
 │   │   ├── index.tsx            # Pet Listing screen (Home)
 │   │   ├── add-pet.tsx          # Add Pet form screen
-│   │   └── cart.tsx             # Shopping cart screen
+│   │   └── explore.tsx          # Pet Discovery screen
+│   ├── cart.tsx                 # Shopping cart (Root level)
 │   └── _layout.tsx              # Root layout with providers
 ├── components/                   # Reusable components
 │   ├── ui/                      # UI primitives
 │   │   ├── button.tsx           # Custom button component
-│   │   └── input.tsx            # Form input component
+│   │   ├── input.tsx            # Form input component
+│   │   └── icon-symbol.tsx      # Cross-platform icons
 │   ├── pet-card.tsx             # Pet display card
-│   └── cart-item-card.tsx       # Cart item display
-├── store/                       # State management
-│   └── pet-store.ts             # Zustand store (pets & cart)
+│   ├── cart-item-card.tsx       # Cart item display
+│   └── haptic-tab.tsx           # Tab with haptic feedback
+├── store/                       # Redux Toolkit state management
+│   ├── store.ts                 # Redux store configuration
+│   └── slices/                  # Redux slices
+│       ├── petsSlices.ts        # Pets state & thunks
+│       └── cartSlice.ts         # Cart state & actions
 ├── services/                    # API layer
 │   └── api.ts                   # API service functions
 ├── types/                       # TypeScript definitions
@@ -99,21 +104,30 @@ pet-shop/
 
 ### State Management Architecture
 
-The app uses **Zustand** for global state management, providing:
-- Simple, hook-based API
-- No boilerplate compared to Redux
-- Excellent TypeScript support
-- Small bundle size (~1KB)
-- No context provider wrapper needed
+The app uses **Redux Toolkit** for predictable state management:
+- Industry-standard solution
+- Excellent DevTools support
+- Built-in immer for immutable updates
+- Redux Thunk for async actions
+- TypeScript-first approach
 
 **Store Structure:**
 ```typescript
+// Pets Slice
 {
-  pets: Pet[],              // All added pets
-  cart: CartItem[],         // Shopping cart items
-  isSubmitting: boolean,    // Form submission state
-  isFetchingRandomImage: boolean,  // Image fetch state
-  error: string | null      // Error messages
+  pets: Pet[],
+  isLoading: boolean,
+  isLoadingMore: boolean,
+  currentPage: number,
+  hasMore: boolean,
+  totalPets: number
+}
+
+// Cart Slice
+{
+  items: CartItem[],
+  total: number,
+  itemsCount: number
 }
 ```
 
@@ -136,10 +150,12 @@ Using **Zod** for schema validation because:
 - **expo-router** (~6.0.23) - File-based navigation
 
 ### State Management
-- **zustand** (^5.0.3) - Global state management
-  - Chosen for simplicity and TypeScript support
-  - No Provider wrapper needed
-  - Minimal boilerplate
+- **@reduxjs/toolkit** - Modern Redux with less boilerplate
+- **react-redux** - React bindings for Redux
+  - Industry standard and battle-tested
+  - Excellent DevTools and debugging
+  - Built-in TypeScript support
+  - Immer for immutable updates
 
 ### Form Validation
 - **zod** (^3.24.1) - Schema validation
@@ -169,13 +185,13 @@ Using **Zod** for schema validation because:
 
 ### UI/UX
 - **react-native-toast-message** (^2.2.1) - Toast notifications
-  - Customizable notifications
-  - Queue management
-  - Smooth animations
+- **react-native-safe-area-context** - Safe area handling
+- **@expo/vector-icons** - Icon library
+- **expo-symbols** - SF Symbols for iOS
 
-### Navigation & Icons
-- **@react-navigation/native** (^7.1.8) - Navigation foundation
-- **@expo/vector-icons** (^15.0.3) - Icon library
+### Navigation
+- **@react-navigation/native** - Navigation foundation
+- **expo-router** - File-based routing
 
 ## 🚀 Setup Instructions
 
@@ -232,42 +248,40 @@ npm run web
 
 ## 📖 Usage Guide
 
+### Browsing Pets (Home)
+
+1. Navigate to **"Home"** tab
+2. Browse available pets with pagination
+3. Filter by category: All Pets, Dogs, or Cats
+4. Tap cart icon (top-right) to view cart
+5. Tap **"Add to Cart"** on any pet card
+6. Pull down to refresh the listing
+
+### Discovering Random Pets (Explore)
+
+1. Navigate to **"Explore"** tab
+2. View a random dog from Dog CEO API
+3. Tap **"Fetch New Friend!"** to discover another
+4. **Add to Favorites**: Tap the heart icon
+5. **Save for Later**: Save pets to your list
+6. **Share**: Share pet details with friends
+7. **Add to Cart**: Quick add from explore screen
+
 ### Adding a New Pet
 
 1. Navigate to **"Add Pet"** tab
-2. Tap the image placeholder to select an image:
-   - **Camera**: Take a new photo
-   - **Gallery**: Choose from existing photos
-   - **Random Dog**: Fetch a random dog image from API
-3. Fill in the required fields:
-   - Pet Name
-   - Breed
-   - Age (in years)
-   - Price (in dollars)
+2. Upload an image (Camera/Gallery/Random)
+3. Fill in: Name, Breed, Age, Price
 4. Tap **"Submit Pet Details"**
-5. Pet will be added to the listing and you'll see a success toast
-
-### Browsing Pets
-
-1. Navigate to **"Pets"** tab (Home)
-2. Scroll through the list of available pets
-3. Each card shows:
-   - Pet image
-   - Name and breed
-   - Age
-   - Price
-4. Tap **"Add to Cart"** to add a pet to your cart
+5. Pet appears in the home listing
 
 ### Managing Cart
 
-1. Navigate to **"Cart"** tab
-2. View all items in your cart with:
-   - Pet details
-   - Quantity
-   - Individual and total prices
-3. **Remove items**: Tap the trash icon
-4. **Clear cart**: Tap "Clear All" in header
-5. **Checkout**: Tap "Proceed to Checkout"
+1. Tap **cart icon** from Home screen
+2. View all items with details
+3. **Remove items**: Tap trash icon with confirmation
+4. **Checkout**: Tap "Proceed to Checkout"
+5. **Go Back**: Tap back arrow to return home
 
 ## 🔧 Development
 
@@ -283,66 +297,62 @@ npm run lint       # Run ESLint
 
 ### Code Structure Guidelines
 
-- **Components**: Reusable UI components in `/components`
 - **Screens**: Page-level components in `/app`
-- **Services**: API calls and external services in `/services`
-- **Store**: State management in `/store`
+- **Components**: Reusable UI in `/components`
+- **Store**: Redux slices in `/store/slices`
+- **Services**: API functions in `/services`
 - **Types**: TypeScript interfaces in `/types`
-- **Validation**: Form schemas in `/validation`
+- **Validation**: Zod schemas in `/validation`
 
 ### Adding New Features
 
 1. Define TypeScript types in `/types`
-2. Create validation schema in `/validation` (if needed)
-3. Add state management in `/store` (if needed)
-4. Create API service functions in `/services` (if needed)
+2. Create Redux slice in `/store/slices` (if needed)
+3. Add API service in `/services` (if needed)
+4. Create validation schema in `/validation` (if needed)
 5. Build UI components in `/components`
 6. Create screen in `/app`
 
 ## 🎨 Design Decisions
 
-### Why Zustand over Redux?
-- **Simplicity**: No actions, reducers, or dispatch needed
-- **Performance**: Minimal re-renders with selector-based subscriptions
-- **Bundle Size**: ~1KB vs Redux's ~15KB
-- **TypeScript**: Better type inference out of the box
-- **Learning Curve**: Easier for new developers
+### Why Redux Toolkit?
+- **Industry Standard**: Widely adopted and supported
+- **DevTools**: Excellent debugging with Redux DevTools
+- **TypeScript**: First-class TypeScript support
+- **Scalability**: Handles complex state requirements
+- **Middleware**: Easy integration with thunks and sagas
 
-### Why Zod over Yup?
-- **Type Safety**: Better TypeScript integration
-- **Modern API**: More intuitive schema definition
-- **Performance**: Faster validation
-- **Bundle Size**: Smaller footprint
-- **Active Development**: Better maintained
+### Why Expo Router?
+- **File-based Routing**: Intuitive navigation structure
+- **Type Safety**: Automatic route typing
+- **Deep Linking**: Built-in support out of the box
+- **Shared Routes**: Easy layouts and nested navigation
 
-### Why Expo over React Native CLI?
-- **Easy Setup**: No native configuration needed
-- **OTA Updates**: Update app without app store approval
-- **Cross-Platform**: Write once, run on iOS, Android, and Web
-- **Rich Ecosystem**: Pre-built modules for common features
-- **Development Speed**: Faster iteration with Expo Go
+### Navigation Architecture
+- **Cart as Root Screen**: Allows access from any screen
+- **Tab Navigation**: Quick access to main features
+- **Stack Navigation**: Natural back/forward flow
 
 ## 🐛 Known Issues & Limitations
 
-1. **Image Upload**: Currently uses local URIs. In production, images should be uploaded to a CDN/cloud storage.
-2. **Cart Persistence**: Cart state is lost on app reload. Consider adding AsyncStorage for persistence.
-3. **Authentication**: No user authentication implemented.
-4. **Payment**: Checkout is simulated, no real payment integration.
+1. **Cart Persistence**: Cart resets on app reload
+2. **Authentication**: No user authentication
+3. **Payment**: Simulated checkout only
+4. **Image Storage**: Local URIs only
 
 ## 🚀 Future Enhancements
 
-- [ ] Persistent cart with AsyncStorage
-- [ ] User authentication (Firebase Auth)
-- [ ] Real payment integration (Stripe)
-- [ ] Pet search and filtering
-- [ ] Favorite pets feature
+- [ ] Persistent cart with AsyncStorage/Redux Persist
+- [ ] User authentication
+- [ ] Payment gateway integration
+- [ ] Advanced search and filters
+- [ ] Favorites persistence
+- [ ] Dark mode
 - [ ] Push notifications
-- [ ] Dark mode support
-- [ ] Multi-language support
-- [ ] Pet categories and breeds autocomplete
-- [ ] Image upload to cloud storage (Cloudinary/AWS S3)
 - [ ] Order history
-- [ ] Pet details screen with more information
+- [ ] Pet detail screen
+- [ ] Cloud image storage
+- [ ] Cat API integration for Explore screen
 
 ## 📄 License
 
