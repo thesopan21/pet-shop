@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { submitPetDetails } from '@/services/api';
 import { addPet, selectIsSubmitting, setIsSubmitting } from '@/store/slices/petsSlices';
+import { Pet } from '@/types/pet';
 import { petSchema } from '@/validation/pet-schema';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -143,23 +143,26 @@ export default function AddPetScreen() {
     try {
       dispatch(setIsSubmitting(true));
 
-      const petData = {
+      // Create pet object with generated ID and timestamp
+      const newPet: Pet = {
+        id: Date.now().toString(), // Generate unique ID based on timestamp
         name,
         breed,
         age: parseFloat(age),
         price: parseFloat(price),
         imageUri,
         category,
+        createdAt: new Date().toISOString(),
+        status: 'new-arrival',
+        isFavorite: false,
       };
 
-      const response = await submitPetDetails(petData);
-
-      dispatch(addPet(response));
+      dispatch(addPet(newPet));
 
       Toast.show({
         type: 'success',
         text1: 'Success!',
-        text2: `${response.name} has been added to the pet shop.`,
+        text2: `${newPet.name} has been added to the pet shop.`,
       });
 
       // Reset form

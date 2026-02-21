@@ -1,4 +1,4 @@
-import { PaginatedPetsResponse, Pet, PetCategory, PetFormData } from '@/types/pet';
+import { PaginatedPetsResponse, Pet, PetCategory } from '@/types/pet';
 import axios from 'axios';
 
 const API_BASE_URL = 'https://reqres.in/api';
@@ -154,36 +154,7 @@ export const fetchPaginatedPets = async (
   };
 };
 
-/**
- * Submit pet details to the mock API
- * POST https://reqres.in/api/users
- */
-export const submitPetDetails = async (petData: PetFormData): Promise<Pet> => {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/users`, {
-      name: petData.name,
-      breed: petData.breed,
-      age: petData.age,
-      price: petData.price,
-      imageUri: petData.imageUri,
-      category: petData.category,
-    });
 
-    // reqres.in returns id and createdAt, we merge with our data
-    return {
-      ...petData,
-      id: response.data.id,
-      createdAt: response.data.createdAt,
-      status: 'new-arrival', // New pets are marked as new arrivals
-      isFavorite: false,
-    };
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to submit pet details');
-    }
-    throw new Error('An unexpected error occurred');
-  }
-};
 
 /**
  * Fetch random dog image
