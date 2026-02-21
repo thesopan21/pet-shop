@@ -1,13 +1,13 @@
+import { CartItem } from '@/types/pet';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
   Image,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { CartItem } from '@/types/pet';
 
 interface CartItemCardProps {
   item: CartItem;
@@ -16,7 +16,19 @@ interface CartItemCardProps {
 
 export const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove }) => {
   const { pet, quantity } = item;
-  const total = pet.price * quantity;
+
+  const getAgeDisplay = () => {
+    if (pet.age < 1) {
+      const months = Math.round(pet.age * 12);
+      return `${months} MONTHS`;
+    }
+    const years = Math.floor(pet.age);
+    return `${years} ${years === 1 ? 'YEAR' : 'YEARS'}`;
+  };
+
+  const getPetType = () => {
+    return pet.category.toUpperCase();
+  };
 
   return (
     <View style={styles.card}>
@@ -26,80 +38,76 @@ export const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove }) =>
         resizeMode="cover"
       />
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.name}>{pet.name}</Text>
-          <TouchableOpacity
-            onPress={() => onRemove(pet.id)}
-            style={styles.removeButton}
-          >
-            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.breed}>{pet.breed} • {pet.age} {pet.age === 1 ? 'year' : 'years'}</Text>
-        <View style={styles.footer}>
-          <Text style={styles.quantity}>Qty: {quantity}</Text>
-          <Text style={styles.price}>${total.toFixed(2)}</Text>
-        </View>
+        <Text style={styles.breed}>{pet.breed}</Text>
+        <Text style={styles.details}>
+          {getPetType()} • {getAgeDisplay()}
+        </Text>
+        <Text style={styles.price}>${pet.price.toFixed(2)}</Text>
       </View>
+      <TouchableOpacity
+        onPress={() => onRemove(pet.id)}
+        style={styles.removeButton}
+      >
+        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+        <Text style={styles.removeText}>Remove</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
-    elevation: 2,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   image: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#f0f0f0',
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
   },
   content: {
     flex: 1,
-    padding: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    flex: 1,
-  },
-  removeButton: {
-    padding: 4,
+    marginLeft: 16,
   },
   breed: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  details: {
+    fontSize: 13,
+    color: '#6B7280',
     marginBottom: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  quantity: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   price: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#F97316',
+  },
+  removeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  removeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 });

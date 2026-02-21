@@ -30,6 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppDispatch } from '@/store/store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 
 type FilterType = 'all' | PetCategory;
 
@@ -186,7 +187,10 @@ export default function PetListingScreen() {
               </View>
               <Text style={styles.title}>Pet Paradise</Text>
             </View>
-            <View style={styles.cartBadgeContainer}>
+            <TouchableOpacity 
+              style={styles.cartBadgeContainer}
+              onPress={() => router.push('/cart')}
+            >
               {cartItemsCount > 0 && (
                 <View style={styles.cartBadge}>
                   <Text style={styles.cartBadgeText}>
@@ -195,7 +199,7 @@ export default function PetListingScreen() {
                 </View>
               )}
               <Ionicons name="cart" size={24} color="#1F2937" />
-            </View>
+            </TouchableOpacity>
           </View>
 
 
