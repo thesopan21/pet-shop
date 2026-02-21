@@ -1,77 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import { fetchRandomDogImage } from '@/services/api';
+import { addToCart, selectCartItemsCount } from '@/store/slices/cartSlice';
+import { Pet } from '@/types/pet';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
   ActivityIndicator,
+  Image,
   ScrollView,
   Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { Pet } from '@/types/pet';
-import { useDispatch } from 'react-redux';
-import { addToCart } from '@/store/slices/cartSlice';
 import Toast from 'react-native-toast-message';
-import { router } from 'expo-router';
+import { useDispatch, useSelector } from 'react-redux';
 
 
 export default function ExploreScreen() {
   const dispatch = useDispatch();
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [savedPets, setSavedPets] = useState<string[]>([]);
+  const cartItemsCount = useSelector(selectCartItemsCount);
 
   // Load a random pet on mount
   useEffect(() => {
     loadRandomPet();
   }, []);
 
-  // add api call for random pet handler
+  const loadRandomPet = async () => {
+    setIsLoading(true);
+    try {
+      const imageUrl = await fetchRandomDogImage();
+
+      // Extract breed name from URL (e.g., "breeds/golden-retriever/image.jpg")
+      const breedMatch = imageUrl.match(/breeds\/([^\/]+)\//);
+      let breedName = 'Mixed Breed';
+
+      if (breedMatch && breedMatch[1]) {
+        // Convert URL format to readable name (e.g., "golden-retriever" -> "Golden Retriever")
+        breedName = breedMatch[1]
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+
+      // Generate random pet name
+      const dogNames = ['Max', 'Buddy', 'Charlie', 'Cooper', 'Rocky', 'Bear', 'Duke', 'Zeus',
+        'Bailey', 'Jack', 'Milo', 'Bentley', 'Oliver', 'Tucker', 'Buster', 'Leo'];
+      const randomName = dogNames[Math.floor(Math.random() * dogNames.length)];
+
+      // Create a Pet object
+      const newPet: Pet = {
+        id: `random-${Date.now()}`,
+        name: randomName,
+        breed: breedName,
+        age: Math.random() * 2,
+        price: Math.floor(Math.random() * 800) + 400,
+        imageUri: imageUrl,
+        createdAt: new Date().toISOString(),
+        category: 'dog',
+        status: 'available',
+        isFavorite: false,
+      };
+
+      setCurrentPet(newPet);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading random pet:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Oops!',
+        text2: 'Failed to fetch a new friend. Please try again.',
+      });
+      setIsLoading(false);
+    }
+  };
 
   const handleFetchNewFriend = () => {
-    // use api to fetch new pet and update state
-    setIsFavorite(false);
+    loadRandomPet();
   };
 
-  const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    if (!isFavorite && currentPet) {
-      Toast.show({
-        type: 'success',
-        text1: 'Added to Favorites',
-        text2: `${currentPet.name} has been added to your favorites!`,
-      });
-    }
-  };
-
-  const handleSaveForLater = () => {
-    if (currentPet && !savedPets.includes(currentPet.id)) {
-      setSavedPets([...savedPets, currentPet.id]);
-      Toast.show({
-        type: 'success',
-        text1: 'Saved for Later',
-        text2: `${currentPet.name} has been saved to your list!`,
-      });
-    }
-  };
-
-  const handleShare = async () => {
-    if (!currentPet) return;
-    
-    try {
-      await Share.share({
-        message: `Check out this amazing ${currentPet.breed} named ${currentPet.name}! Available for adoption at $${currentPet.price}.`,
-        title: `Meet ${currentPet.name}!`,
-      });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
 
   const handleAddToCart = () => {
     if (currentPet) {
@@ -85,33 +97,35 @@ export default function ExploreScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <StatusBar style="dark" backgroundColor="white" />
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.headerButton}
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Pet Discovery</Text>
-          <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="search" size={24} color="#1F2937" />
+          <TouchableOpacity
+            style={styles.cartBadgeContainer}
+            onPress={() => router.push('/cart')}
+          >
+            {cartItemsCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                </Text>
+              </View>
+            )}
+            <Ionicons name="cart" size={24} color="#1F2937" />
           </TouchableOpacity>
-        </View>
-
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.mainTitle}>Who's a good dog?</Text>
-          <Text style={styles.subtitle}>
-            Discover your next best friend with a single tap!
-          </Text>
         </View>
 
         {/* Pet Card */}
@@ -122,22 +136,12 @@ export default function ExploreScreen() {
           </View>
         ) : currentPet ? (
           <View style={styles.petCard}>
-            <Image 
-              source={{ uri: currentPet.imageUri }} 
+            <Image
+              source={{ uri: currentPet.imageUri }}
               style={styles.petImage}
               resizeMode="cover"
             />
-            <TouchableOpacity 
-              style={styles.favoriteButton}
-              onPress={handleToggleFavorite}
-            >
-              <Ionicons 
-                name="paw" 
-                size={24} 
-                color="#FFFFFF" 
-              />
-            </TouchableOpacity>
-            
+
             {/* Pet Info Overlay */}
             <View style={styles.petInfoOverlay}>
               <View style={styles.petInfoContent}>
@@ -145,13 +149,6 @@ export default function ExploreScreen() {
                   <Text style={styles.breedLabel}>BREED SPOTTED</Text>
                   <Text style={styles.breedName}>{currentPet.breed}</Text>
                 </View>
-                <TouchableOpacity onPress={handleToggleFavorite}>
-                  <Ionicons 
-                    name={isFavorite ? "heart" : "heart-outline"} 
-                    size={28} 
-                    color="#F97316" 
-                  />
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -159,7 +156,7 @@ export default function ExploreScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleFetchNewFriend}
             disabled={isLoading}
@@ -167,43 +164,11 @@ export default function ExploreScreen() {
             <Ionicons name="sparkles" size={24} color="#FFFFFF" style={styles.buttonIcon} />
             <Text style={styles.primaryButtonText}>Fetch New Friend!</Text>
           </TouchableOpacity>
-
-          <View style={styles.secondaryButtons}>
-            <TouchableOpacity 
-              style={styles.secondaryButton}
-              onPress={handleSaveForLater}
-            >
-              <Ionicons name="bookmark" size={20} color="#F97316" style={styles.secondaryButtonIcon} />
-              <Text style={styles.secondaryButtonText}>Save for Later</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.shareButton}
-              onPress={handleShare}
-            >
-              <Ionicons name="share-social" size={24} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Pro Tip Section */}
-        <View style={styles.proTipSection}>
-          <View style={styles.proTipHeader}>
-            <View style={styles.proTipIcon}>
-              <Ionicons name="information" size={20} color="#F97316" />
-            </View>
-            <View style={styles.proTipTextContainer}>
-              <Text style={styles.proTipTitle}>Pro Tip: Daily Sniffs</Text>
-              <Text style={styles.proTipText}>
-                Checking in daily increases your chances of finding rare breeds looking for a loving forever home.
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Quick Add to Cart Button */}
         {currentPet && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.quickAddButton}
             onPress={handleAddToCart}
           >
@@ -246,6 +211,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
   },
+  cartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    zIndex: 999,
+    backgroundColor: '#EF4444',
+    borderRadius: 20,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cartBadgeContainer: {
+    position: 'relative',
+  },
   heroSection: {
     paddingHorizontal: 24,
     paddingTop: 32,
@@ -267,11 +255,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
   },
   petImage: {
     width: '100%',
@@ -300,9 +285,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingVertical: 20,
+    paddingVertical: 12,
     paddingHorizontal: 24,
   },
   petInfoContent: {

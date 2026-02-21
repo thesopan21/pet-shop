@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: 50,
   },
   itemsSummary: {
     fontSize: 15,
