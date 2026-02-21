@@ -7,19 +7,17 @@ import {
   selectIsLoadingMore,
   selectHasMore,
   selectCurrentPage,
-  selectTotalPets,
   fetchPets,
   toggleFavorite,
   resetPets
 } from '@/store/slices/petsSlices';
-import { Pet, PetCategory } from '@/types/pet';
+import { Pet } from '@/types/pet';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   FlatList,
   StyleSheet,
   Text,
   View,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -32,7 +30,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 
-type FilterType = 'all' | PetCategory;
 
 export default function PetListingScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,8 +40,6 @@ export default function PetListingScreen() {
   const currentPage = useSelector(selectCurrentPage);
   const cartItemsCount = useSelector(selectCartItemsCount);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   // Initial fetch
@@ -52,67 +47,27 @@ export default function PetListingScreen() {
     dispatch(fetchPets({ page: 1, limit: 10 }));
   }, []);
 
-  // Handle filter change
-  const handleFilterChange = useCallback((filter: FilterType) => {
-    setActiveFilter(filter);
-    dispatch(resetPets());
-
-    const category = filter === 'all' ? undefined : filter as PetCategory;
-    dispatch(fetchPets({
-      page: 1,
-      limit: 10,
-      category,
-      searchQuery: searchQuery || undefined
-    }));
-  }, [searchQuery]);
-
-  // Handle search
-  const handleSearch = useCallback((text: string) => {
-    setSearchQuery(text);
-  }, []);
-
-  // Debounced search effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      dispatch(resetPets());
-      const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
-      dispatch(fetchPets({
-        page: 1,
-        limit: 10,
-        category,
-        searchQuery: searchQuery || undefined
-      }));
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
 
   // Handle refresh
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
     dispatch(resetPets());
-    const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
     await dispatch(fetchPets({
       page: 1,
       limit: 10,
-      category,
-      searchQuery: searchQuery || undefined
     }));
     setRefreshing(false);
-  }, [activeFilter, searchQuery]);
+  }
 
   // Handle load more
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
-      const category = activeFilter === 'all' ? undefined : activeFilter as PetCategory;
       dispatch(fetchPets({
         page: currentPage + 1,
         limit: 10,
-        category,
-        searchQuery: searchQuery || undefined
       }));
     }
-  }, [isLoadingMore, hasMore, currentPage, activeFilter, searchQuery]);
+  }, [isLoadingMore, hasMore, currentPage]);
 
   const handleAddToCart = (pet: Pet) => {
     dispatch(addToCart(pet));
@@ -127,39 +82,12 @@ export default function PetListingScreen() {
     dispatch(toggleFavorite(petId));
   };
 
-  const renderFilterButton = (label: string, filter: FilterType, icon: string) => (
-    <TouchableOpacity
-      style={[
-        styles.filterButton,
-        activeFilter === filter && styles.filterButtonActive,
-      ]}
-      onPress={() => handleFilterChange(filter)}
-    >
-      <Ionicons
-        name={icon as any}
-        size={18}
-        color={activeFilter === filter ? '#FFFFFF' : '#6B7280'}
-        style={styles.filterIcon}
-      />
-      <Text
-        style={[
-          styles.filterText,
-          activeFilter === filter && styles.filterTextActive,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>🐾</Text>
       <Text style={styles.emptyTitle}>No Pets Available</Text>
       <Text style={styles.emptyText}>
-        {searchQuery
-          ? `No results found for "${searchQuery}"`
-          : 'Add your first pet using the "Add Pet" tab!'}
+        Add your first pet using the "Add Pet" tab!
       </Text>
     </View>
   );
@@ -187,7 +115,7 @@ export default function PetListingScreen() {
               </View>
               <Text style={styles.title}>Pet Paradise</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cartBadgeContainer}
               onPress={() => router.push('/cart')}
             >
@@ -200,14 +128,6 @@ export default function PetListingScreen() {
               )}
               <Ionicons name="cart" size={24} color="#1F2937" />
             </TouchableOpacity>
-          </View>
-
-
-          {/* Filter Buttons */}
-          <View style={styles.filterContainer}>
-            {renderFilterButton('All Pets', 'all', 'apps')}
-            {renderFilterButton('Dogs', 'dog', 'paw')}
-            {renderFilterButton('Cats', 'cat', 'paw')}
           </View>
         </View>
 
@@ -259,7 +179,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#F9FAFB',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
+    paddingTop: 18
   },
   headerTop: {
     flexDirection: 'row',
